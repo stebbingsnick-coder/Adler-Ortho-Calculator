@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Adler Ortho Calculator</title>
+<style>
+  :root {
+    --bg: #E3EEF9;
+    --panel: #FFFFFF;
+    --ink: #16293D;
+    --ink-soft: #52708C;
+    --line: #C4D9EC;
+    --accent: #1D63B5;
+    --accent-soft: #DCEAFA;
+    --error: #B3402A;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0E1D2E;
+      --panel: #162A40;
+      --ink: #E7F0FA;
+      --ink-soft: #90ABC4;
+      --line: #274363;
+      --accent: #6FA8E8;
+      --accent-soft: #1E344D;
+      --error: #E07A5F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0E1D2E;
+    --panel: #162A40;
+    --ink: #E7F0FA;
+    --ink-soft: #90ABC4;
+    --line: #274363;
+    --accent: #6FA8E8;
+    --accent-soft: #1E344D;
+    --error: #E07A5F;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .wrap {
+    width: 100%;
+    max-width: 480px;
+  }
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: 0.01em;
+  }
+  .sub {
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+    margin: 0 0 28px;
+    line-height: 1.5;
+  }
+  .rule {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+  }
+  .chip {
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 3px 9px;
+    background: var(--panel);
+  }
+  .chip strong { color: var(--ink); }
+
+  .modes {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .mode-btn {
+    flex: 1;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 12px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--panel);
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+  .mode-btn:hover { border-color: var(--accent); }
+  .mode-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #FFFFFF;
+  }
+  .mode-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .branch-label {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    margin: 0 0 6px 2px;
+  }
+  .branch-group {
+    margin-bottom: 16px;
+  }
+  .placeholder-note {
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    margin: -8px 0 16px 2px;
+    font-style: italic;
+  }
+
+  .field {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 18px;
+    margin-bottom: 20px;
+  }
+  label {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+  input[type="number"] {
+    width: 100%;
+    font-family: inherit;
+    font-size: 1.6rem;
+    border: none;
+    background: transparent;
+    color: var(--ink);
+    outline: none;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .result {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 22px;
+    background: var(--panel);
+    min-height: 88px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .result.empty {
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+  }
+  .result-total {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--accent);
+    line-height: 1.1;
+  }
+  .result-breakdown {
+    margin-top: 6px;
+    font-size: 1rem;
+    color: var(--ink);
+  }
+  .result-diff {
+    margin-top: 10px;
+    font-size: 0.85rem;
+    color: var(--ink-soft);
+  }
+  .result-diff.exact { color: var(--accent); }
+
+  .alts {
+    margin-top: 18px;
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+  }
+  .alts-title {
+    font-size: 0.78rem;
+    text-transform: none;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+  .alt-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    padding: 5px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  .alt-row:last-child { border-bottom: none; }
+  .alt-total { color: var(--ink); }
+  .alt-breakdown { color: var(--ink-soft); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="modes" id="modes">
+    <button class="mode-btn active" data-mode="PFR">PFR</button>
+    <button class="mode-btn" data-mode="DFR">DFR</button>
+    <button class="mode-btn" data-mode="IPFR">IPFR</button>
+    <button class="mode-btn" data-mode="PHR">PHR</button>
+    <button class="mode-btn" data-mode="PTR">PTR</button>
+    <button class="mode-btn" data-mode="TFR">TFR</button>
+  </div>
+
+  <div id="phrBranches"></div>
+  <div id="ptrSelector"></div>
+
+  <h1>Adler Ortho Calculator</h1>
+  <p class="sub">Enter a target measurement and I'll find the closest combination.</p>
+
+  <div class="field">
+    <label for="target">Target measurement</label>
+    <input type="number" id="target" placeholder="e.g. 240" inputmode="decimal">
+  </div>
+
+  <div class="rule" id="rule"></div>
+
+  <div class="result empty" id="result">
+    Enter a number above to see the closest combination.
+  </div>
+</div>
+
+<script>
+  const targetInput = document.getElementById('target');
+  const resultEl = document.getElementById('result');
+  const ruleEl = document.getElementById('rule');
+  const modesEl = document.getElementById('modes');
+  const phrBranchesEl = document.getElementById('phrBranches');
+  const ptrSelectorEl = document.getElementById('ptrSelector');
+
+  const BASE = 20;
+  const ALL_SHAFTS = [35, 50, 65, 80, 95, 110, 120, 125, 140];
+
+  // Real Hemi data from the Pantheon spec sheet: Universal Body and Collar
+  // base (62mm CR), shafts stack additively (each shaft H_x contributes
+  // x+1mm), and total Height adds a head-specific offset on top of the
+  // CR (COR) total.
+  const HEMI_BASE = 62;
+  const HEMI_SHAFTS = [35, 45, 55, 65, 75, 85, 95, 105];
+  const HEMI_HEAD_OFFSET = { Head43: 21.5, Head47: 23.5 };
+
+  // Real Reverse data from the Pantheon spec sheet: Universal Body and
+  // Collar base (76mm CR) plus a liner-specific CR adjustment, shafts stack
+  // the same way as Hemi, and Height adds a head-diameter-specific offset
+  // (same for N and +4 variants of a given diameter) on top of the CR total.
+  const REV_BASE = 76;
+  const REV_SHAFTS = [35, 45, 55, 65, 75, 85, 95, 105];
+  const REV_LINER = {
+    '32+0': { crAdj: 0, hOffset: 16 },
+    '32+4': { crAdj: 3, hOffset: 16 },
+    '36+0': { crAdj: 1.5, hOffset: 18 },
+    '36+4': { crAdj: 4.5, hOffset: 18 }
+  };
+
+  // PTR: Collar 20 + PROX Tibial Implant 100 (both fixed) + a required
+  // manual size choice (10/12/14/17/20, each contributing size-4mm) +
+  // any subset of the same shafts used by PFR.
+  const PTR_COLLAR = 20;
+  const PTR_IMPLANT = 100;
+  const PTR_SIZE_OPTIONS = [10, 12, 14, 17, 20];
+
+  const MODES = {
+    PFR: {
+      label: 'PFR',
+      baseParts: [{ label: 'Collar', value: 20 }],
+      requiredOptions: [50, 70],
+      reqLabel: 'Proximal Body',
+      shafts: ALL_SHAFTS,
+      ruleText: 'Plus one Proximal Body: <strong>50</strong> or <strong>70</strong> (required)'
+    },
+    DFR: {
+      label: 'DFR',
+      baseParts: [{ label: 'Collar', value: 20 }],
+      requiredOptions: [77],
+      reqLabel: 'Distal Body',
+      shafts: ALL_SHAFTS,
+      ruleText: 'Plus Distal Body: <strong>77</strong> (fixed)'
+    },
+    IPFR: {
+      label: 'IPFR',
+      baseParts: [{ label: 'Collar', value: 20 }],
+      requiredOptions: [50, 70],
+      reqLabel: 'Proximal Body',
+      shafts: [35, 50, 65, 120],
+      ruleText: 'Plus one Proximal Body: <strong>50</strong> or <strong>70</strong> (required)'
+    },
+    PHR: {
+      label: 'PHR',
+      branch: true,
+      leaves: {
+        'Hemi_43mm_Height': { type: 'hemiReal', head: 'Head43', measure: 'Height' },
+        'Hemi_43mm_COR': { type: 'hemiReal', head: 'Head43', measure: 'COR' },
+        'Hemi_47mm_Height': { type: 'hemiReal', head: 'Head47', measure: 'Height' },
+        'Hemi_47mm_COR': { type: 'hemiReal', head: 'Head47', measure: 'COR' },
+        'Reverse_32+0_Height': { type: 'reverseReal', liner: '32+0', measure: 'Height' },
+        'Reverse_32+0_COR': { type: 'reverseReal', liner: '32+0', measure: 'COR' },
+        'Reverse_32+4_Height': { type: 'reverseReal', liner: '32+4', measure: 'Height' },
+        'Reverse_32+4_COR': { type: 'reverseReal', liner: '32+4', measure: 'COR' },
+        'Reverse_36+0_Height': { type: 'reverseReal', liner: '36+0', measure: 'Height' },
+        'Reverse_36+0_COR': { type: 'reverseReal', liner: '36+0', measure: 'COR' },
+        'Reverse_36+4_Height': { type: 'reverseReal', liner: '36+4', measure: 'Height' },
+        'Reverse_36+4_COR': { type: 'reverseReal', liner: '36+4', measure: 'COR' }
+      }
+    },
+    PTR: {
+      label: 'PTR',
+      requiresManualSelection: true,
+      shafts: ALL_SHAFTS
+    },
+    TFR: {
+      label: 'TFR',
+      baseParts: [{ label: 'Distal Femur', value: 77 }, { label: 'Connector', value: 4 }],
+      requiredOptions: [50, 70],
+      reqLabel: 'Proximal Body',
+      shafts: ALL_SHAFTS,
+      maxShafts: 5,
+      ruleText: 'Plus one Proximal Body: <strong>50</strong> or <strong>70</strong> (required)'
+    }
+  };
+
+  const REV_OPTIONS = ['32+0', '32+4', '36+0', '36+4'];
+
+  let currentMode = 'PFR';
+  let phrBranch1 = null;  // 'Hemi' | 'Reverse'
+  let phrHead = null;     // 'Head43' | 'Head47' — only used when phrBranch1 === 'Hemi'
+  let phrRevOpt = null;   // one of REV_OPTIONS — only used when phrBranch1 === 'Reverse'
+  let phrBranch2 = null;  // 'Height' | 'COR'
+  let ptrSize = null;     // one of PTR_SIZE_OPTIONS — required manual choice for PTR
+
+  function phrLeafKey() {
+    if (!phrBranch1 || !phrBranch2) return null;
+    if (phrBranch1 === 'Hemi') {
+      if (!phrHead) return null;
+      const headLabel = phrHead === 'Head43' ? '43mm' : '47mm';
+      return `Hemi_${headLabel}_${phrBranch2}`;
+    }
+    if (!phrRevOpt) return null;
+    return `Reverse_${phrRevOpt}_${phrBranch2}`;
+  }
+
+  function activeConfig() {
+    const mode = MODES[currentMode];
+    if (mode.branch) {
+      const key = phrLeafKey();
+      return key ? mode.leaves[key] : null;
+    }
+    if (mode.requiresManualSelection) {
+      return ptrSize !== null ? { type: 'ptr', size: ptrSize, shafts: mode.shafts } : null;
+    }
+    return mode;
+  }
+
+  function renderPhrBranches() {
+    if (currentMode !== 'PHR') {
+      phrBranchesEl.innerHTML = '';
+      return;
+    }
+    let html = `
+      <div class="branch-group">
+        <div class="branch-label">Choose one</div>
+        <div class="modes" id="phrBranch1Row">
+          <button class="mode-btn ${phrBranch1 === 'Hemi' ? 'active' : ''}" data-branch1="Hemi">Hemi</button>
+          <button class="mode-btn ${phrBranch1 === 'Reverse' ? 'active' : ''}" data-branch1="Reverse">Reverse</button>
+        </div>
+      </div>
+    `;
+    if (phrBranch1 === 'Hemi') {
+      html += `
+        <div class="branch-group">
+          <div class="branch-label">Choose one</div>
+          <div class="modes" id="phrHeadRow">
+            <button class="mode-btn ${phrHead === 'Head43' ? 'active' : ''}" data-head="Head43">43mm head</button>
+            <button class="mode-btn ${phrHead === 'Head47' ? 'active' : ''}" data-head="Head47">47mm head</button>
+          </div>
+        </div>
+      `;
+    }
+    if (phrBranch1 === 'Reverse') {
+      html += `
+        <div class="branch-group">
+          <div class="branch-label">Choose one</div>
+          <div class="modes" id="phrRevRow">
+            ${REV_OPTIONS.map(opt => `<button class="mode-btn ${phrRevOpt === opt ? 'active' : ''}" data-rev="${opt}">${opt}</button>`).join('')}
+          </div>
+        </div>
+      `;
+    }
+    const readyForBranch2 = (phrBranch1 === 'Hemi' && phrHead) || (phrBranch1 === 'Reverse' && phrRevOpt);
+    if (readyForBranch2) {
+      html += `
+        <div class="branch-group">
+          <div class="branch-label">Choose one</div>
+          <div class="modes" id="phrBranch2Row">
+            <button class="mode-btn ${phrBranch2 === 'Height' ? 'active' : ''}" data-branch2="Height">Height</button>
+            <button class="mode-btn ${phrBranch2 === 'COR' ? 'active' : ''}" data-branch2="COR">COR</button>
+          </div>
+        </div>
+      `;
+    }
+    phrBranchesEl.innerHTML = html;
+  }
+
+  function renderRule() {
+    const config = activeConfig();
+    if (!config) {
+      ruleEl.innerHTML = '';
+      return;
+    }
+    if (config.type === 'hemiReal') {
+      const headLabel = config.head === 'Head43' ? '43mm' : '47mm';
+      const offset = HEMI_HEAD_OFFSET[config.head];
+      const measureNote = config.measure === 'Height'
+        ? `<span class="chip">Measuring <strong>Height</strong>: adds ${headLabel} head offset (<strong>+${offset}</strong>) on top of the CR total</span>`
+        : `<span class="chip">Measuring <strong>COR</strong>: raw CR total, no head offset added</span>`;
+      ruleEl.innerHTML = `
+        <span class="chip">Universal Body and Collar 62 (always included)</span>
+        <span class="chip">Plus any mix of Shafts (each used at most once): <strong>H35, H45, H55, H65, H75, H85, H95, H105</strong> — each adds (value + 1)mm</span>
+        ${measureNote}
+      `;
+      return;
+    }
+    if (config.type === 'reverseReal') {
+      const liner = REV_LINER[config.liner];
+      const baseTotal = REV_BASE + liner.crAdj;
+      const measureNote = config.measure === 'Height'
+        ? `<span class="chip">Measuring <strong>Height</strong>: adds Liner ${config.liner} head offset (<strong>+${liner.hOffset}</strong>) on top of the CR total</span>`
+        : `<span class="chip">Measuring <strong>COR</strong>: raw CR total, no head offset added</span>`;
+      ruleEl.innerHTML = `
+        <span class="chip">Universal Body and Collar ${baseTotal} (Liner ${config.liner}, always included)</span>
+        <span class="chip">Plus any mix of Shafts (each used at most once): <strong>H35, H45, H55, H65, H75, H85, H95, H105</strong> — each adds (value + 1)mm</span>
+        ${measureNote}
+      `;
+      return;
+    }
+    if (config.type === 'ptr') {
+      ruleEl.innerHTML = `
+        <span class="chip">Collar 20 (always included)</span>
+        <span class="chip">PROX Tibial Implant 100 (always included)</span>
+        <span class="chip">Size <strong>${config.size}</strong> chosen: adds <strong>+${config.size - 4}</strong> (size − 4)</span>
+        <span class="chip">Plus any mix of Shafts (each used at most once): <strong>${config.shafts.join(', ')}</strong></span>
+      `;
+      return;
+    }
+    const baseChips = config.baseParts.map(p => `<span class="chip">${p.label} ${p.value} (always included)</span>`).join('\n      ');
+    const shaftCapNote = config.maxShafts ? ` — max <strong>${config.maxShafts}</strong> shafts total` : '';
+    ruleEl.innerHTML = `
+      ${baseChips}
+      <span class="chip">${config.ruleText}</span>
+      <span class="chip">Plus any mix of Shafts (each used at most once${shaftCapNote}): <strong>${config.shafts.join(', ')}</strong></span>
+    `;
+  }
+
+  function renderPtrSelector() {
+    if (currentMode !== 'PTR') {
+      ptrSelectorEl.innerHTML = '';
+      return;
+    }
+    ptrSelectorEl.innerHTML = `
+      <div class="branch-group">
+        <div class="branch-label">Choose Target Bearing Size</div>
+        <div class="modes" id="ptrSizeRow">
+          ${PTR_SIZE_OPTIONS.map(opt => `<button class="mode-btn ${ptrSize === opt ? 'active' : ''}" data-ptrsize="${opt}">${opt}</button>`).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  modesEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('.mode-btn');
+    if (!btn || btn.disabled) return;
+    const mode = btn.dataset.mode;
+    if (!mode || mode === currentMode) return;
+    currentMode = mode;
+    phrBranch1 = null;
+    phrHead = null;
+    phrRevOpt = null;
+    phrBranch2 = null;
+    ptrSize = null;
+    modesEl.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+    renderPhrBranches();
+    renderPtrSelector();
+    renderRule();
+    render();
+  });
+
+  ptrSelectorEl.addEventListener('click', (e) => {
+    const sizeBtn = e.target.closest('[data-ptrsize]');
+    if (!sizeBtn) return;
+    ptrSize = Number(sizeBtn.dataset.ptrsize);
+    renderPtrSelector();
+    renderRule();
+    render();
+  });
+
+  phrBranchesEl.addEventListener('click', (e) => {
+    const b1 = e.target.closest('[data-branch1]');
+    const head = e.target.closest('[data-head]');
+    const rev = e.target.closest('[data-rev]');
+    const b2 = e.target.closest('[data-branch2]');
+    if (b1) {
+      phrBranch1 = b1.dataset.branch1;
+      phrHead = null;
+      phrRevOpt = null;
+      phrBranch2 = null;
+    } else if (head) {
+      phrHead = head.dataset.head;
+      phrBranch2 = null;
+    } else if (rev) {
+      phrRevOpt = rev.dataset.rev;
+      phrBranch2 = null;
+    } else if (b2) {
+      phrBranch2 = b2.dataset.branch2;
+    } else {
+      return;
+    }
+    renderPhrBranches();
+    renderRule();
+    render();
+  });
+
+  // Real Hemi model: Standard 62 base + any subset of the 8 shafts (each
+  // used at most once, each contributing shaftLabel+1mm), then optionally
+  // plus the head offset if measuring Height rather than COR.
+  function findCombinationsHemiReal(target, config) {
+    const subsetCount = 1 << HEMI_SHAFTS.length;
+    const candidates = [];
+    for (let mask = 0; mask < subsetCount; mask++) {
+      let sum = 0;
+      const chosen = [];
+      for (let i = 0; i < HEMI_SHAFTS.length; i++) {
+        if (mask & (1 << i)) {
+          sum += HEMI_SHAFTS[i] + 1;
+          chosen.push(HEMI_SHAFTS[i]);
+        }
+      }
+      const cr = HEMI_BASE + sum;
+      const total = config.measure === 'Height' ? cr + HEMI_HEAD_OFFSET[config.head] : cr;
+      const diff = Math.abs(target - total);
+      candidates.push({ total, diff, chosen, pieces: chosen.length, cr });
+    }
+    candidates.sort((x, y) => x.diff - y.diff || x.pieces - y.pieces);
+
+    const seenTotals = new Set();
+    const distinct = [];
+    for (const c of candidates) {
+      if (!seenTotals.has(c.total)) {
+        seenTotals.add(c.total);
+        distinct.push(c);
+      }
+      if (distinct.length >= 4) break;
+    }
+    return distinct;
+  }
+
+  function describeHemiReal(config, chosen) {
+    const parts = ['Universal Body and Collar 62'];
+    for (const v of chosen) parts.push(`Shaft H${v} (+${v + 1})`);
+    if (config.measure === 'Height') {
+      const offset = HEMI_HEAD_OFFSET[config.head];
+      const headLabel = config.head === 'Head43' ? '43mm' : '47mm';
+      parts.push(`${headLabel} head offset (+${offset})`);
+    }
+    return parts.join(' + ');
+  }
+
+  // Real Reverse model: Universal Body and Collar 76 base + liner-specific
+  // CR adjustment + any subset of the 8 shafts (each used at most once,
+  // each contributing shaftLabel+1mm), then optionally plus the liner's
+  // head-diameter offset if measuring Height rather than COR.
+  function findCombinationsReverseReal(target, config) {
+    const liner = REV_LINER[config.liner];
+    const subsetCount = 1 << REV_SHAFTS.length;
+    const candidates = [];
+    for (let mask = 0; mask < subsetCount; mask++) {
+      let sum = 0;
+      const chosen = [];
+      for (let i = 0; i < REV_SHAFTS.length; i++) {
+        if (mask & (1 << i)) {
+          sum += REV_SHAFTS[i] + 1;
+          chosen.push(REV_SHAFTS[i]);
+        }
+      }
+      const cr = REV_BASE + liner.crAdj + sum;
+      const total = config.measure === 'Height' ? cr + liner.hOffset : cr;
+      const diff = Math.abs(target - total);
+      candidates.push({ total, diff, chosen, pieces: chosen.length, cr });
+    }
+    candidates.sort((x, y) => x.diff - y.diff || x.pieces - y.pieces);
+
+    const seenTotals = new Set();
+    const distinct = [];
+    for (const c of candidates) {
+      if (!seenTotals.has(c.total)) {
+        seenTotals.add(c.total);
+        distinct.push(c);
+      }
+      if (distinct.length >= 4) break;
+    }
+    return distinct;
+  }
+
+  function describeReverseReal(config, chosen) {
+    const liner = REV_LINER[config.liner];
+    const baseTotal = REV_BASE + liner.crAdj;
+    const parts = [`Universal Body and Collar ${baseTotal} (Liner ${config.liner})`];
+    for (const v of chosen) parts.push(`Shaft H${v} (+${v + 1})`);
+    if (config.measure === 'Height') {
+      parts.push(`Liner ${config.liner} head offset (+${liner.hOffset})`);
+    }
+    return parts.join(' + ');
+  }
+
+  // PTR model: Collar 20 + PROX Tibial Implant 100 (both fixed) + the
+  // chosen size's (size-4)mm contribution + any subset of the shafts
+  // (each used at most once).
+  function findCombinationsPtr(target, config) {
+    const shafts = config.shafts;
+    const fixedBase = PTR_COLLAR + PTR_IMPLANT + (config.size - 4);
+    const subsetCount = 1 << shafts.length;
+    const candidates = [];
+    for (let mask = 0; mask < subsetCount; mask++) {
+      let sum = 0;
+      const counts = {};
+      let pieces = 0;
+      for (let i = 0; i < shafts.length; i++) {
+        if (mask & (1 << i)) {
+          sum += shafts[i];
+          counts[shafts[i]] = 1;
+          pieces++;
+        }
+      }
+      const total = fixedBase + sum;
+      const diff = Math.abs(target - total);
+      candidates.push({ total, diff, counts, pieces });
+    }
+    candidates.sort((x, y) => x.diff - y.diff || x.pieces - y.pieces);
+
+    const seenTotals = new Set();
+    const distinct = [];
+    for (const c of candidates) {
+      if (!seenTotals.has(c.total)) {
+        seenTotals.add(c.total);
+        distinct.push(c);
+      }
+      if (distinct.length >= 4) break;
+    }
+    return distinct;
+  }
+
+  function describePtr(config, counts) {
+    const parts = ['Collar 20', 'PROX Tibial Implant 100', `Size ${config.size} (+${config.size - 4})`];
+    for (const v of config.shafts) {
+      if (counts[v]) parts.push(`Shaft ${v}`);
+    }
+    return parts.join(' + ');
+  }
+
+  // Each shaft can be used at most once, so we enumerate every subset
+  // of the config's shaft list (small enough — max 9 shafts = 512 subsets).
+  function findCombinations(target) {
+    const config = activeConfig();
+    if (config.type === 'hemiReal') return findCombinationsHemiReal(target, config);
+    if (config.type === 'reverseReal') return findCombinationsReverseReal(target, config);
+    if (config.type === 'ptr') return findCombinationsPtr(target, config);
+
+    const shafts = config.shafts;
+    const requiredOptions = config.requiredOptions;
+    const baseSum = config.baseParts.reduce((s, p) => s + p.value, 0);
+    const maxShafts = config.maxShafts || shafts.length;
+    const subsetCount = 1 << shafts.length;
+
+    const candidates = [];
+    for (const req of requiredOptions) {
+      for (let mask = 0; mask < subsetCount; mask++) {
+        let sum = 0;
+        const counts = {};
+        let pieces = 0;
+        for (let i = 0; i < shafts.length; i++) {
+          if (mask & (1 << i)) {
+            sum += shafts[i];
+            counts[shafts[i]] = 1;
+            pieces++;
+          }
+        }
+        if (pieces > maxShafts) continue;
+        const total = baseSum + req + sum;
+        const diff = Math.abs(target - total);
+        candidates.push({ req, total, diff, counts, pieces });
+      }
+    }
+    candidates.sort((x, y) => x.diff - y.diff || x.pieces - y.pieces);
+
+    const seenTotals = new Set();
+    const distinct = [];
+    for (const c of candidates) {
+      if (!seenTotals.has(c.total)) {
+        seenTotals.add(c.total);
+        distinct.push(c);
+      }
+      if (distinct.length >= 4) break;
+    }
+    return distinct;
+  }
+
+  function describe(req, counts) {
+    const config = activeConfig();
+    const shafts = config.shafts;
+    const parts = config.baseParts.map(p => `${p.label} ${p.value}`);
+    parts.push(`${config.reqLabel} ${req}`);
+    for (const v of shafts) {
+      if (counts[v]) parts.push(`Shaft ${v}`);
+    }
+    return parts.join(' + ');
+  }
+
+  function render() {
+    const config = activeConfig();
+    if (!config) {
+      resultEl.className = 'result empty';
+      resultEl.innerHTML = currentMode === 'PTR'
+        ? 'Choose a size (10, 12, 14, 17, or 20) to see results.'
+        : 'Choose Hemi or Reverse (then head size if Hemi), then Height or COR, to see results.';
+      return;
+    }
+    const val = targetInput.value;
+    if (val === '' || isNaN(val)) {
+      resultEl.className = 'result empty';
+      resultEl.innerHTML = 'Enter a number above to see the closest combination.';
+      return;
+    }
+    const target = parseFloat(val);
+    const matches = findCombinations(target);
+    const best = matches[0];
+    const describeMatch = (m) => {
+      if (config.type === 'hemiReal') return describeHemiReal(config, m.chosen);
+      if (config.type === 'reverseReal') return describeReverseReal(config, m.chosen);
+      if (config.type === 'ptr') return describePtr(config, m.counts);
+      return describe(m.req, m.counts);
+    };
+
+    resultEl.className = 'result';
+    const diffLabel = best.diff === 0
+      ? '<span class="result-diff exact">Exact match</span>'
+      : `<span class="result-diff">${best.total > target ? 'Over' : 'Under'} by ${best.diff}</span>`;
+
+    let html = `
+      <div class="result-total">${best.total}</div>
+      <div class="result-breakdown">${describeMatch(best)}</div>
+      ${diffLabel}
+    `;
+
+    const alts = matches.slice(1, 4);
+    if (alts.length) {
+      html += `<div class="alts"><div class="alts-title">Other close options</div>`;
+      for (const alt of alts) {
+        html += `
+          <div class="alt-row">
+            <span class="alt-breakdown">${describeMatch(alt)}</span>
+            <span class="alt-total">${alt.total} (${alt.diff === 0 ? 'exact' : (alt.total > target ? '+' : '−') + alt.diff})</span>
+          </div>
+        `;
+      }
+      html += `</div>`;
+    }
+
+    resultEl.innerHTML = html;
+  }
+
+  targetInput.addEventListener('input', render);
+  renderPhrBranches();
+  renderPtrSelector();
+  renderRule();
+</script>
+</body>
+</html>
